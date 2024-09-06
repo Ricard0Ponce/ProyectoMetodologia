@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Modificar Respuestas</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script>
+        var stompClient = null;
+        var userResponses = {};
+
+        function connect() {
+            var socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Conectado: ' + frame);
+                stompClient.subscribe('/topic/responses', function (message) {
+                    updateResponses(JSON.parse(message.body));
+                });
+            });
+        }
+
+        function updateResponses(responses) {
+            userResponses = responses;
+            var responseDiv = document.getElementById("responseList");
+            responseDiv.innerHTML = "";
+            for (var i = 0; i < userResponses.length; i++) {
+                let respuesta = userResponses[i];
+                responseDiv.innerHTML += `
+                    <div>
+                        <strong>Usuario ${respuesta.sessionId}</strong><br>
+                        Respuesta Original: <span>${respuesta.respuesta}</span><br>
+                        Respuesta Modificada:
+                        <select id="${respuesta.sessionId}" onchange="modifyResponse('${respuesta.sessionId}')">
+                            <option value="Rojo" ${respuesta.respuestaModificada === 'Rojo' ? 'selected' : ''}>Rojo</option>
+                            <option value="Azul" ${respuesta.respuestaModificada === 'Azul' ? 'selected' : ''}>Azul</option>
+                            <option value="Verde" ${respuesta.respuestaModificada === 'Verde' ? 'selected' : ''}>Verde</option>
+                        </select>
+                    </div>
+                    <hr>`;
+            }
+        }
+
+        function modifyResponse(sessionId) {
+            var newResponse = document.getElementById(sessionId).value;
+            stompClient.send("/app/modify", {}, sessionId + ":" + newResponse);
+        }
+
+        window.onload = function() {
+            connect();
+        };
+    </script>
+</head>
+<body>
+<h1>Admin - Modificar Respuestas de los Usuarios</h1>
+<div id="responseList"></div>
+</body>
+</html>
