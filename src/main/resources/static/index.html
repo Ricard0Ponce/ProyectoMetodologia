@@ -88,6 +88,24 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
+        #response {
+            margin-top: 20px;
+            font-style: italic;
+            max-height: 200px; /* Ajusta la altura máxima a tu preferencia */
+            overflow-y: auto; /* Permite el desplazamiento vertical */
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+
+        #responseButtons {
+            position: sticky;
+            bottom: 20px; /* Ajusta según sea necesario */
+            background-color: white; /* Fondo blanco para que se destaque si hay mucho contenido */
+            padding-top: 20px;
+        }
+
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
@@ -144,8 +162,14 @@
         }
 
         function showResponse(message) {
+            var responseList = JSON.parse(message);
             var responseDiv = document.getElementById("response");
-            responseDiv.innerHTML += "<p>" + message + "</p>";
+
+            responseDiv.innerHTML = ""; // Limpiar el contenido anterior
+
+            responseList.forEach(function(respuesta) {
+                responseDiv.innerHTML += "<p>" + respuesta.name + ": " + respuesta.response + "</p>";
+            });
         }
 
         window.onload = function () {

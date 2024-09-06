@@ -24,11 +24,11 @@ public class Encuestado {
 
     private String nombre;
 
-    @OneToMany(mappedBy = "encuestado", cascade = CascadeType.ALL)
+    // fetch = FetchType.EAGER
+    @OneToMany(mappedBy = "encuestado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Respuesta> respuestas = new ArrayList<>();
 
     @ManyToOne
+    @JoinColumn(name = "claves_id", nullable = false)
     Claves claves;
-
-
 }

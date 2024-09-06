@@ -16,7 +16,7 @@ public class Claves {
 
     String claveEscrita;
 
-    @OneToMany
+    @OneToMany(mappedBy = "claves", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<Encuestado> encuestado;
 
 }
