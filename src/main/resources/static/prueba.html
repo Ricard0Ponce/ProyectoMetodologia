@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<h1>WebSocket Test</h1>
+<button onclick="connect()">Connect</button>
+<button onclick="sendMessage()">Send Message</button>
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/responses', function (message) {
+                alert("Message from server: " + message.body);
+            });
+        });
+    }
+
+    function sendMessage() {
+        if (stompClient && stompClient.connected) {
+            const message = JSON.stringify({name: "testName", key: "testKey", response: "Hello WebSocket"});
+            stompClient.send("/app/response", {}, message);
+        } else {
+            alert("WebSocket is not connected.");
+        }
+    }
+</script>
+</body>
+</html>

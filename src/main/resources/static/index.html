@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Pregunta Demo</title>
+    <title>Encuesta</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -60,6 +60,18 @@
         #response {
             margin-top: 20px;
             font-style: italic;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+
+        #responseButtons {
+            position: sticky;
+            bottom: 20px;
+            background-color: white;
+            padding-top: 20px;
         }
 
         #thankYouMessage {
@@ -88,26 +100,7 @@
             border-radius: 5px;
             cursor: pointer;
         }
-
-        #response {
-            margin-top: 20px;
-            font-style: italic;
-            max-height: 200px; /* Ajusta la altura máxima a tu preferencia */
-            overflow-y: auto; /* Permite el desplazamiento vertical */
-            border: 1px solid #ddd;
-            padding: 10px;
-            background-color: #f9f9f9;
-        }
-
-        #responseButtons {
-            position: sticky;
-            bottom: 20px; /* Ajusta según sea necesario */
-            background-color: white; /* Fondo blanco para que se destaque si hay mucho contenido */
-            padding-top: 20px;
-        }
-
     </style>
-
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <script>
@@ -116,6 +109,7 @@
         const maxResponses = 12;
         var userName = null;
         var userKey = null;
+        var sessionStarted = false;
 
         function connect() {
             var socket = new SockJS('/ws');
@@ -125,23 +119,33 @@
                 stompClient.subscribe('/topic/responses', function (message) {
                     showResponse(message.body);
                 });
+                stompClient.subscribe('/topic/start', function (message) {
+                    sessionStarted = JSON.parse(message.body);
+                });
             });
         }
 
         function submitUser() {
             userName = document.getElementById("name").value;
             userKey = document.getElementById("key").value;
-
             if (userName && userKey) {
                 document.getElementById("userForm").style.display = "none";
                 document.getElementById("responseButtons").style.display = "block";
+                document.getElementById("mensaje-info").style.display = "none";
+
+                // Enviar la información del usuario a la sesión
+                stompClient.send("/app/start", {}, JSON.stringify({
+                    nombreUsuario: userName,
+                    sessionId: stompClient.connected
+                }));
             } else {
                 alert("Por favor ingresa tu nombre y clave.");
             }
         }
 
+
         function sendResponse(response) {
-            if (responseCount < maxResponses && userName && userKey) {
+            if (responseCount < maxResponses && userName && userKey && sessionStarted) {
                 var responseData = {
                     name: userName,
                     key: userKey,
@@ -150,6 +154,8 @@
                 stompClient.send("/app/response", {}, JSON.stringify(responseData));
                 responseCount++;
                 checkResponseLimit();
+            } else if (!sessionStarted) {
+                alert("La sesión no ha comenzado.");
             }
         }
 
@@ -165,7 +171,7 @@
             var responseList = JSON.parse(message);
             var responseDiv = document.getElementById("response");
 
-            responseDiv.innerHTML = ""; // Limpiar el contenido anterior
+            responseDiv.innerHTML = "";
 
             responseList.forEach(function(respuesta) {
                 responseDiv.innerHTML += "<p>" + respuesta.name + ": " + respuesta.response + "</p>";
@@ -174,13 +180,13 @@
 
         window.onload = function () {
             connect();
-            document.getElementById("responseButtons").style.display = "none"; // Esconder los botones al inicio
+            document.getElementById("responseButtons").style.display = "none";
         };
     </script>
 </head>
 <body>
 <div class="container">
-    <h1>Introduce tu información</h1>
+    <h1 id="mensaje-info">Introduce tu información</h1>
     <div id="userForm">
         <input type="text" id="name" placeholder="Ingresa tu nombre" required>
         <input type="password" id="key" placeholder="Ingresa tu clave" required>

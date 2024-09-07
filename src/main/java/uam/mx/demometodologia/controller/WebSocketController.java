@@ -3,18 +3,24 @@ package uam.mx.demometodologia.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 import uam.mx.demometodologia.dto.RespuestaDTO;
+import uam.mx.demometodologia.dto.UserDTO;
 import uam.mx.demometodologia.entities.Claves;
 import uam.mx.demometodologia.entities.Encuestado;
 import uam.mx.demometodologia.entities.Respuesta;
 import uam.mx.demometodologia.repositories.ClavesRepository;
 import uam.mx.demometodologia.repositories.EncuestadoRepository;
 import uam.mx.demometodologia.repositories.RespuestasRepository;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Controller
@@ -24,6 +30,10 @@ public class WebSocketController {
     private final RespuestasRepository respuestaRepository;
     private final EncuestadoRepository encuestadoRepository;
     private final ClavesRepository clavesRepository;
+    private final SimpMessageSendingOperations messagingTemplate;
+
+    private final AtomicBoolean sessionStarted = new AtomicBoolean(false);
+    private final List<UserDTO> connectedUsers = new ArrayList<>();
 
     @MessageMapping("/response")
     @SendTo("/topic/responses")
@@ -53,21 +63,41 @@ public class WebSocketController {
                 respuesta.setSessionId(sessionId);
                 respuestaRepository.save(respuesta);
 
-                // Convertir todas las respuestas a DTOs antes de enviarlas
-                List<RespuestaDTO> respuestasDTO = respuestaRepository.findAll().stream()
+                List<RespuestaDTO> respuestasDTO = respuestaRepository.findByEncuestado_Claves_ClaveEscrita(key)
+                        .stream()
                         .map(res -> new RespuestaDTO(res.getEncuestado().getNombre(), res.getResOriginal()))
                         .collect(Collectors.toList());
-
                 return respuestasDTO;
             } else {
-                return null;
+                return Collections.emptyList();
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return Collections.emptyList();
         }
     }
 
+    @MessageMapping("/start")
+    @SendTo("/topic/start")
+    public boolean startSession() {
+        sessionStarted.set(true);
+        return true;
+    }
 
+    @MessageMapping("/connect")
+    public void handleConnect(SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        // Puedes obtener el nombre del usuario desde el mensaje si es necesario
+        // Aquí lo obtengo como un ejemplo fijo
+        UserDTO user = new UserDTO("Usuario_" + sessionId, sessionId);
+        connectedUsers.add(user);
+        messagingTemplate.convertAndSend("/topic/users", connectedUsers);
+    }
 
+    @MessageMapping("/disconnect")
+    public void handleDisconnect(SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        connectedUsers.removeIf(user -> user.getSessionId().equals(sessionId));
+        messagingTemplate.convertAndSend("/topic/users", connectedUsers);
+    }
 }
