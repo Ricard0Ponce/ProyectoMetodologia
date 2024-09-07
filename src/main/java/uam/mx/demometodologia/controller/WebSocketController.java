@@ -3,6 +3,7 @@ package uam.mx.demometodologia.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -20,6 +21,7 @@ import uam.mx.demometodologia.repositories.RespuestasRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -45,6 +47,7 @@ public class WebSocketController {
             String key = jsonNode.get("key").asText();
             String response = jsonNode.get("response").asText();
             String sessionId = headerAccessor.getSessionId();
+
 
             Claves clave = clavesRepository.findByClaveEscrita(key);
             if (clave != null) {
@@ -84,13 +87,33 @@ public class WebSocketController {
         return true; // Regresamos un booleano que indica que la sesion ha iniciado
     }
 
+    /* Esto funcionaba
     @MessageMapping("/connect")
     public void handleConnect(SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
+        System.out.println("Usuario conectado: " + sessionId);
         UserDTO user = new UserDTO("Usuario_" + sessionId, sessionId);
         connectedUsers.add(user);
         messagingTemplate.convertAndSend("/topic/users", connectedUsers);
+    }*/
+
+    @MessageMapping("/connect")
+    public void handleConnect(@Payload Map<String, String> payload, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        String nombre = payload.get("nombre"); // Obtener el nombre enviado desde el cliente
+
+        System.out.println("Usuario conectado: " + nombre + " con ID de sesión: " + sessionId);
+
+        // Crear un nuevo UserDTO con nombre y sessionId
+        UserDTO user = new UserDTO(nombre, sessionId);
+
+        // Añadir el usuario a la lista de usuarios conectados
+        connectedUsers.add(user);
+
+        // Enviar la lista actualizada de usuarios conectados al front-end
+        messagingTemplate.convertAndSend("/topic/users", connectedUsers);
     }
+
 
     @MessageMapping("/disconnect")
     public void handleDisconnect(SimpMessageHeaderAccessor headerAccessor) {

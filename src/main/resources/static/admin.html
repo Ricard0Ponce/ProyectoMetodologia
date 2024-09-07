@@ -114,7 +114,7 @@
 
         function modifyResponse(sessionId) {
             var newResponse = document.getElementById(sessionId).value;
-            stompClient.send("/app/modify", {}, sessionId + ":" + newResponse);
+            stompClient.send("/app/modify", {}, JSON.stringify({ sessionId: sessionId, newResponse: newResponse }));
         }
 
         function startSession() {
@@ -128,19 +128,19 @@
             for (var i = 0; i < connectedUsers.length; i++) {
                 let user = connectedUsers[i];
                 userTable.innerHTML += `
-        <tr>
-            <td>${i + 1}</td>
-            <td>${user.name}</td>
-            <td>${user.sessionId}</td>
-        </tr>`;
+    <tr>
+        <td>${i + 1}</td>
+        <td>${user.nombreUsuario}</td>  <!-- Mostrar nombre del usuario -->
+        <td>${user.sessionId}</td>      <!-- Mostrar ID de sesión -->
+    </tr>`;
             }
         }
+
 
         window.onload = function() {
             connect();
         };
     </script>
-
 </head>
 <body>
 <h1>Admin - Modificar Respuestas de los Usuarios</h1>

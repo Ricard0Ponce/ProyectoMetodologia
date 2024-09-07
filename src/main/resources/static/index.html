@@ -116,15 +116,27 @@
             stompClient = Stomp.over(socket);
             stompClient.connect({}, function (frame) {
                 console.log('Conectado: ' + frame);
+
                 stompClient.subscribe('/topic/responses', function (message) {
                     showResponse(message.body);
                 });
                 stompClient.subscribe('/topic/start', function (message) {
                     sessionStarted = JSON.parse(message.body);
                 });
+                stompClient.subscribe('/topic/users', function (message) {
+                    updateConnectedUsers(JSON.parse(message.body));
+                });
             });
         }
 
+        function updateConnectedUsers(users) {
+            // Lógica para actualizar la lista de usuarios conectados
+            console.log('Usuarios conectados:', users);
+        }
+
+
+
+        // Esta funcion se encarga de analizar si la clave es correcta o no, ademas de enviar un mensaje al servidor con los datos del usuario
         function submitUser() {
             userName = document.getElementById("name").value;
             userKey = document.getElementById("key").value;
@@ -140,6 +152,13 @@
                     .then(data => {
                         console.log('Respuesta del servidor:', data);  // Imprime la respuesta para depuración
                         if (data.trim() === "Clave válida") {
+                            // Enviar un mensaje de conexión al servidor
+                            stompClient.send("/app/connect", {}, JSON.stringify({
+                                nombre: userName,
+                                sessionId: stompClient.connected // Incluye el sessionId o usa otra forma de obtenerlo
+                            }));
+                            // CUIDADO AQUI
+
                             document.getElementById("userForm").style.display = "none";
                             document.getElementById("responseButtons").style.display = "block";
                             document.getElementById("mensaje-info").style.display = "none";
