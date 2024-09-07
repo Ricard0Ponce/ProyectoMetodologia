@@ -80,15 +80,13 @@ public class WebSocketController {
     @MessageMapping("/start")
     @SendTo("/topic/start")
     public boolean startSession() {
-        sessionStarted.set(true);
-        return true;
+        sessionStarted.set(true); // Iniciamos la sesion
+        return true; // Regresamos un booleano que indica que la sesion ha iniciado
     }
 
     @MessageMapping("/connect")
     public void handleConnect(SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
-        // Puedes obtener el nombre del usuario desde el mensaje si es necesario
-        // Aquí lo obtengo como un ejemplo fijo
         UserDTO user = new UserDTO("Usuario_" + sessionId, sessionId);
         connectedUsers.add(user);
         messagingTemplate.convertAndSend("/topic/users", connectedUsers);
@@ -100,4 +98,14 @@ public class WebSocketController {
         connectedUsers.removeIf(user -> user.getSessionId().equals(sessionId));
         messagingTemplate.convertAndSend("/topic/users", connectedUsers);
     }
+
+    // Agregamos una funcion para mostrarle al admin los usuarios que se van conectando
+
+    @MessageMapping("/users")
+    @SendTo("/topic/users")
+    public List<UserDTO> getUsers() {
+        return connectedUsers;
+    }
+
+
 }

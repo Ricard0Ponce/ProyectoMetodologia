@@ -73,7 +73,7 @@
     </style>
     <script>
         var stompClient = null;
-        var userResponses = {};
+        var userResponses = [];
         var connectedUsers = [];
 
         function connect() {
@@ -101,8 +101,8 @@
                 let respuesta = userResponses[i];
                 responseDiv.innerHTML += `
                 <div class="response-item">
-                    <strong>Usuario: ${respuesta.nombreUsuario}</strong><br>
-                    Respuesta Original: <span>${respuesta.respuesta}</span><br>
+                    <strong>Usuario: ${respuesta.name}</strong><br>
+                    Respuesta Original: <span>${respuesta.response}</span><br>
                     Respuesta Modificada:
                     <select id="${respuesta.sessionId}" onchange="modifyResponse('${respuesta.sessionId}')">
                         <option value="Dulce" ${respuesta.respuestaModificada === 'Dulce' ? 'selected' : ''}>Dulce</option>
@@ -124,15 +124,15 @@
         function updateConnectedUsers(users) {
             connectedUsers = users;
             var userTable = document.getElementById("userTableBody");
-            userTable.innerHTML = "";
+            userTable.innerHTML = ""; // Limpia la tabla antes de actualizar
             for (var i = 0; i < connectedUsers.length; i++) {
                 let user = connectedUsers[i];
                 userTable.innerHTML += `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${user.nombreUsuario}</td>
-                    <td>${user.sessionId}</td>
-                </tr>`;
+        <tr>
+            <td>${i + 1}</td>
+            <td>${user.name}</td>
+            <td>${user.sessionId}</td>
+        </tr>`;
             }
         }
 

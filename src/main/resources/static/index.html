@@ -129,15 +129,37 @@
             userName = document.getElementById("name").value;
             userKey = document.getElementById("key").value;
             if (userName && userKey) {
-                document.getElementById("userForm").style.display = "none";
-                document.getElementById("responseButtons").style.display = "block";
-                document.getElementById("mensaje-info").style.display = "none";
-
-                // Enviar la información del usuario a la sesión
-                stompClient.send("/app/start", {}, JSON.stringify({
-                    nombreUsuario: userName,
-                    sessionId: stompClient.connected
-                }));
+                fetch('/api/entrar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ clave: userKey })
+                })
+                    .then(response => response.text())  // Obtén el texto de la respuesta
+                    .then(data => {
+                        console.log('Respuesta del servidor:', data);  // Imprime la respuesta para depuración
+                        if (data.trim() === "Clave válida") {
+                            document.getElementById("userForm").style.display = "none";
+                            document.getElementById("responseButtons").style.display = "block";
+                            document.getElementById("mensaje-info").style.display = "none";
+                            stompClient.send("/app/start", {}, JSON.stringify({
+                                nombreUsuario: userName,
+                                sessionId: stompClient.connected
+                            }));
+                        } else if (data.trim() === "Clave incorrecta") {
+                            alert("Clave incorrecta. Inténtalo de nuevo.");
+                            document.getElementById("userForm").style.display = "block";
+                            document.getElementById("responseButtons").style.display = "none";
+                        } else {
+                            alert("Respuesta inesperada del servidor. Inténtalo de nuevo.");
+                            console.error('Respuesta inesperada:', data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("Error al intentar ingresar. Inténtalo de nuevo.");
+                    });
             } else {
                 alert("Por favor ingresa tu nombre y clave.");
             }
@@ -183,6 +205,7 @@
             document.getElementById("responseButtons").style.display = "none";
         };
     </script>
+
 </head>
 <body>
 <div class="container">
