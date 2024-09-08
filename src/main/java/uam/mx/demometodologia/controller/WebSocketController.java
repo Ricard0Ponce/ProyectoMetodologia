@@ -47,7 +47,7 @@ public class WebSocketController {
             String key = jsonNode.get("key").asText();
             String response = jsonNode.get("response").asText();
             String sessionId = headerAccessor.getSessionId();
-
+            Integer ronda = jsonNode.get("ronda").asInt(); // Obtener la ronda actual
 
             Claves clave = clavesRepository.findByClaveEscrita(key);
             if (clave != null) {
@@ -64,9 +64,10 @@ public class WebSocketController {
                 respuesta.setEncuestado(encuestado);
                 respuesta.setResOriginal(response);
                 respuesta.setSessionId(sessionId);
+                respuesta.setRonda(ronda); // Establecer la ronda en la respuesta
                 respuestaRepository.save(respuesta);
 
-                List<RespuestaDTO> respuestasDTO = respuestaRepository.findByEncuestado_Claves_ClaveEscrita(key)
+                List<RespuestaDTO> respuestasDTO = respuestaRepository.findByEncuestado_Claves_ClaveEscritaAndRonda(key, ronda)
                         .stream()
                         .map(res -> new RespuestaDTO(res.getEncuestado().getNombre(), res.getResOriginal()))
                         .collect(Collectors.toList());
@@ -79,6 +80,7 @@ public class WebSocketController {
             return Collections.emptyList();
         }
     }
+
 
     @MessageMapping("/start")
     @SendTo("/topic/start")

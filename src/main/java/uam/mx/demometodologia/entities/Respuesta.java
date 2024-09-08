@@ -35,5 +35,8 @@ public class Respuesta {
     @Column(name = "session_id")
     private String sessionId;
 
-    // Getters and Setters
+    // Nuevo campo para la ronda
+    @Column(name = "ronda")
+    private Integer ronda;
+
 }

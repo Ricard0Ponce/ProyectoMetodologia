@@ -100,6 +100,19 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
+        #nextRoundBtn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none; /* Se oculta inicialmente */
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
@@ -110,6 +123,7 @@
         var userName = null;
         var userKey = null;
         var sessionStarted = false;
+        var roundActive = false; // Controla si la ronda está activa
 
         function connect() {
             var socket = new SockJS('/ws');
@@ -130,13 +144,9 @@
         }
 
         function updateConnectedUsers(users) {
-            // Lógica para actualizar la lista de usuarios conectados
             console.log('Usuarios conectados:', users);
         }
 
-
-
-        // Esta funcion se encarga de analizar si la clave es correcta o no, ademas de enviar un mensaje al servidor con los datos del usuario
         function submitUser() {
             userName = document.getElementById("name").value;
             userKey = document.getElementById("key").value;
@@ -148,31 +158,23 @@
                     },
                     body: JSON.stringify({ clave: userKey })
                 })
-                    .then(response => response.text())  // Obtén el texto de la respuesta
+                    .then(response => response.text())
                     .then(data => {
-                        console.log('Respuesta del servidor:', data);  // Imprime la respuesta para depuración
                         if (data.trim() === "Clave válida") {
-                            // Enviar un mensaje de conexión al servidor
                             stompClient.send("/app/connect", {}, JSON.stringify({
                                 nombre: userName,
-                                sessionId: stompClient.connected // Incluye el sessionId o usa otra forma de obtenerlo
+                                sessionId: stompClient.connected
                             }));
-                            // CUIDADO AQUI
 
                             document.getElementById("userForm").style.display = "none";
                             document.getElementById("responseButtons").style.display = "block";
-                            document.getElementById("mensaje-info").style.display = "none";
                             stompClient.send("/app/start", {}, JSON.stringify({
                                 nombreUsuario: userName,
                                 sessionId: stompClient.connected
                             }));
-                        } else if (data.trim() === "Clave incorrecta") {
-                            alert("Clave incorrecta. Inténtalo de nuevo.");
-                            document.getElementById("userForm").style.display = "block";
-                            document.getElementById("responseButtons").style.display = "none";
+                            roundActive = true;
                         } else {
-                            alert("Respuesta inesperada del servidor. Inténtalo de nuevo.");
-                            console.error('Respuesta inesperada:', data);
+                            alert("Clave incorrecta. Inténtalo de nuevo.");
                         }
                     })
                     .catch(error => {
@@ -184,29 +186,50 @@
             }
         }
 
+        var currentRound = 1; // Inicializar la ronda
 
         function sendResponse(response) {
-            if (responseCount < maxResponses && userName && userKey && sessionStarted) {
+            if (responseCount < maxResponses && roundActive && sessionStarted) {
                 var responseData = {
                     name: userName,
                     key: userKey,
-                    response: response
+                    response: response,
+                    ronda: currentRound // Enviar la ronda actual
                 };
                 stompClient.send("/app/response", {}, JSON.stringify(responseData));
                 responseCount++;
-                checkResponseLimit();
+
+                // Deshabilitar los botones después de la respuesta
+                document.getElementById("dulceBtn").disabled = true;
+                document.getElementById("picosoBtn").disabled = true;
+
+                // Mostrar el botón de siguiente
+                document.getElementById("nextRoundBtn").style.display = "block";
+
+                // Desactivar la ronda
+                roundActive = false;
             } else if (!sessionStarted) {
                 alert("La sesión no ha comenzado.");
             }
         }
 
-        function checkResponseLimit() {
-            if (responseCount >= maxResponses) {
-                document.getElementById("thankYouMessage").innerText = "Gracias por participar. :)";
-                document.getElementById("dulceBtn").disabled = true;
-                document.getElementById("picosoBtn").disabled = true;
-            }
+        function nextRound() {
+            // Limpiar las respuestas
+            document.getElementById("response").innerHTML = "";
+
+            // Habilitar los botones
+            document.getElementById("dulceBtn").disabled = false;
+            document.getElementById("picosoBtn").disabled = false;
+
+            // Ocultar el botón de siguiente
+            document.getElementById("nextRoundBtn").style.display = "none";
+
+            // Comenzar la nueva ronda
+            roundActive = true;
+            currentRound++; // Incrementar la ronda
+            console.log("LA RONDA ES: "+currentRound);
         }
+
 
         function showResponse(message) {
             var responseList = JSON.parse(message);
@@ -242,6 +265,7 @@
             <button id="dulceBtn" onclick="sendResponse('Dulce')">Dulce</button>
             <button id="picosoBtn" onclick="sendResponse('Picoso')">Picoso</button>
         </div>
+        <button id="nextRoundBtn" onclick="nextRound()">Siguiente</button> <!-- Botón para la siguiente ronda -->
     </div>
 
     <div id="response"></div>
